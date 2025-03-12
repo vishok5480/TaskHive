@@ -227,7 +227,7 @@ const HomePage = () => {
 
     const handleEditTask = async (taskData) => {
         try {
-            await fetch(`http://localhost:3001/tasks/${taskData.id}`, {
+            await fetch(`http://localhost:3001/tasks/${taskData._id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
