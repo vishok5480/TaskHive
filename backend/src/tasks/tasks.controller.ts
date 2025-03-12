@@ -20,4 +20,12 @@ export class TasksController {
   complete(@Param('id') id: string) {
     return this.tasksService.complete(+id);
   }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateTaskDto: { title: string; description: string; priority: 'low' | 'medium' | 'high'; dueDate: string }
+  ) {
+    return this.tasksService.update(+id, updateTaskDto);
+  }
 }

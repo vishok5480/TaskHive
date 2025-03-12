@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchTasks } from '@/features/tasks/taskThunks';
 import styled from 'styled-components';
 import CreateTaskModal from '@/components/CreateTaskModal';
+import EditTaskModal from '@/components/EditTaskModal';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -149,10 +150,40 @@ const EmptyState = styled.div`
   color: #64748b;
 `;
 
+const TaskActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const Button = styled.button`
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  
+  ${props => props.primary ? `
+    background: #3b82f6;
+    color: white;
+    &:hover {
+      background: #2563eb;
+    }
+  ` : `
+    background: #f3f4f6;
+    color: #374151;
+    &:hover {
+      background: #e5e7eb;
+    }
+  `}
+`;
+
 const HomePage = () => {
     const dispatch = useDispatch();
     const { tasks, loading, error } = useSelector((state) => state.tasks);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState(null);
 
     useEffect(() => {
         dispatch(fetchTasks());
@@ -194,6 +225,22 @@ const HomePage = () => {
         }
     };
 
+    const handleEditTask = async (taskData) => {
+        try {
+            await fetch(`http://localhost:3001/tasks/${taskData.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(taskData),
+            });
+            dispatch(fetchTasks());
+            setIsEditModalOpen(false);
+        } catch (error) {
+            console.error('Error updating task:', error);
+        }
+    };
+
     if (loading) return <Container><EmptyState>Loading...</EmptyState></Container>;
     if (error) return <Container><EmptyState>Error: {error}</EmptyState></Container>;
 
@@ -228,9 +275,19 @@ const HomePage = () => {
                                         Due: {new Date(task.dueDate).toLocaleDateString()}
                                     </DueDate>
                                 </TaskMeta>
-                                <CompleteButton onClick={() => handleCompleteTask(task.id)}>
-                                    Complete Task
-                                </CompleteButton>
+                                <TaskActions>
+                                    <CompleteButton onClick={() => handleCompleteTask(task.id)}>
+                                        Complete Task
+                                    </CompleteButton>
+                                    <Button 
+                                        onClick={() => {
+                                            setSelectedTask(task);
+                                            setIsEditModalOpen(true);
+                                        }}
+                                    >
+                                        Edit
+                                    </Button>
+                                </TaskActions>
                             </TaskContent>
                         </TaskCard>
                     ))}
@@ -240,6 +297,12 @@ const HomePage = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSubmit={handleSubmitTask}
+            />
+            <EditTaskModal 
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                onSubmit={handleEditTask}
+                task={selectedTask}
             />
         </Container>
     );

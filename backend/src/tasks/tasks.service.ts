@@ -62,4 +62,13 @@ export class TasksService {
       task.completed = true;
     }
   }
+
+  update(id: number, updateData: Partial<Task>): Task {
+    const task = this.tasks.find(t => t.id === id);
+    if (task) {
+      Object.assign(task, updateData);
+      return task;
+    }
+    throw new Error('Task not found');
+  }
 }
