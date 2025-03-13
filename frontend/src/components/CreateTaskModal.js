@@ -1,149 +1,167 @@
+import { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
+import { addTask } from '../features/tasks/tasksSlice';
 
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: ${props => props.$isVisible ? 'flex' : 'none'};
   justify-content: center;
   align-items: center;
+  z-index: 1000;
 `;
 
 const ModalContent = styled.div`
-  background: white;
-  padding: 2rem;
+  background-color: white;
+  padding: 20px;
   border-radius: 8px;
-  width: 100%;
+  width: 90%;
   max-width: 500px;
-`;
-
-const Title = styled.h2`
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
 `;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 15px;
 `;
 
 const Input = styled.input`
-  padding: 0.75rem;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 16px;
 `;
 
 const TextArea = styled.textarea`
-  padding: 0.75rem;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 16px;
   min-height: 100px;
 `;
 
 const Select = styled.select`
-  padding: 0.75rem;
+  padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 1rem;
-`;
-
-const PriorityTag = styled.span`
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  ${props => {
-    switch (props.priority) {
-      case 'high':
-        return 'background: #FEE2E2; color: #DC2626;';
-      case 'medium':
-        return 'background: #FEF3C7; color: #D97706;';
-      case 'low':
-        return 'background: #ECFDF5; color: #059669;';
-      default:
-        return '';
-    }
-  }}
+  font-size: 16px;
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 10px;
+  margin-top: 20px;
 `;
 
 const Button = styled.button`
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
+  padding: 8px 16px;
   border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
   
-  ${props => props.primary ? `
-    background: #0070f3;
+  &.primary {
+    background-color: #0066cc;
     color: white;
+    
     &:hover {
-      background: #0051cc;
+      background-color: #0052a3;
     }
-  ` : `
-    background: #f5f5f5;
+  }
+  
+  &.secondary {
+    background-color: #ddd;
     color: #333;
+    
     &:hover {
-      background: #eaeaea;
+      background-color: #ccc;
     }
-  `}
+  }
 `;
 
-const CreateTaskModal = ({ isOpen, onClose, onSubmit }) => {
-  if (!isOpen) return null;
+const CreateTaskModal = ({ isOpen, onClose }) => {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState('medium');
+  const [dueDate, setDueDate] = useState('');
+  const dispatch = useDispatch();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    onSubmit({
-      title: formData.get('title'),
-      description: formData.get('description'),
-      priority: formData.get('priority'),
-      dueDate: formData.get('dueDate')
-    });
+    try {
+      const response = await fetch('http://localhost:3001/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          description,
+          priority,
+          dueDate,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create task');
+      
+      const newTask = await response.json();
+      dispatch(addTask(newTask));
+      
+      onClose();
+      setTitle('');
+      setDescription('');
+      setPriority('medium');
+      setDueDate('');
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
   };
 
   return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContent onClick={e => e.stopPropagation()}>
-        <Title>Create New Task</Title>
+    <ModalOverlay $isVisible={isOpen}>
+      <ModalContent>
+        <h2>Create New Task</h2>
         <Form onSubmit={handleSubmit}>
-          <Input 
-            name="title"
+          <Input
+            type="text"
             placeholder="Task Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             required
           />
-          <TextArea 
-            name="description"
+          <TextArea
             placeholder="Task Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             required
           />
-          <Select name="priority" required>
-            <option value="">Select Priority</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
+          <Select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value)}
+          >
+            <option value="low">Low Priority</option>
+            <option value="medium">Medium Priority</option>
+            <option value="high">High Priority</option>
           </Select>
-          <Input 
+          <Input
             type="date"
-            name="dueDate"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
             required
           />
           <ButtonGroup>
-            <Button type="button" onClick={onClose}>Cancel</Button>
-            <Button type="submit" primary>Create Task</Button>
+            <Button type="button" className="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" className="primary">
+              Create Task
+            </Button>
           </ButtonGroup>
         </Form>
       </ModalContent>

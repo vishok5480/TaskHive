@@ -3,179 +3,52 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchTasks } from '@/features/tasks/taskThunks';
 import styled from 'styled-components';
 import CreateTaskModal from '@/components/CreateTaskModal';
-import EditTaskModal from '@/components/EditTaskModal';
+import EditTaskModal from '../components/EditTaskModal';
+import SearchBar from '../components/SearchBar';
+import TaskList from '../components/TaskList';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 2rem;
-  min-height: 100vh;
-  background: #f8fafc;
-`;
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e2e8f0;
+  padding: 20px;
 `;
 
 const Title = styled.h1`
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  letter-spacing: -0.5px;
-`;
-
-const CreateButton = styled.button`
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  &:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
-
-const TaskGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
-`;
-
-const TaskCard = styled.div`
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
-  transition: all 0.2s;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 12px -1px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const TaskContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const TaskTitle = styled.h2`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
-`;
-
-const TaskDescription = styled.p`
-  color: #64748b;
-  font-size: 0.95rem;
-  line-height: 1.5;
-`;
-
-const TaskMeta = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
-`;
-
-const PriorityTag = styled.span`
-  padding: 0.35rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  ${props => {
-    switch (props.priority) {
-      case 'high':
-        return 'background: #fee2e2; color: #dc2626;';
-      case 'medium':
-        return 'background: #fef3c7; color: #d97706;';
-      case 'low':
-        return 'background: #ecfdf5; color: #059669;';
-      default:
-        return '';
-    }
-  }}
-`;
-
-const DueDate = styled.span`
-  color: #64748b;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-`;
-
-const CompleteButton = styled.button`
-  width: 100%;
-  background: #22c55e;
-  color: white;
-  border: none;
-  padding: 0.75rem;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 1rem;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #16a34a;
-  }
-`;
-
-const EmptyState = styled.div`
   text-align: center;
-  padding: 3rem;
-  color: #64748b;
-`;
-
-const TaskActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 2.5rem;
 `;
 
 const Button = styled.button`
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
+  background-color: #0066cc;
+  color: white;
   border: none;
-  
-  ${props => props.primary ? `
-    background: #3b82f6;
-    color: white;
-    &:hover {
-      background: #2563eb;
-    }
-  ` : `
-    background: #f3f4f6;
-    color: #374151;
-    &:hover {
-      background: #e5e7eb;
-    }
-  `}
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #0052a3;
+  }
+`;
+
+const Controls = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const Select = styled.select`
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  margin-left: 10px;
+  font-size: 1rem;
 `;
 
 const HomePage = () => {
@@ -183,11 +56,15 @@ const HomePage = () => {
     const { tasks, loading, error } = useSelector((state) => state.tasks);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [selectedTask, setSelectedTask] = useState(null);
+    const [editingTask, setEditingTask] = useState(null);
+    const [sortBy, setSortBy] = useState('priority');
+    const [sortOrder, setSortOrder] = useState('ascending');
 
     useEffect(() => {
         dispatch(fetchTasks());
     }, [dispatch]);
+
+    console.log('Current tasks:', tasks);
 
     const handleCreateTask = () => {
         setIsModalOpen(true);
@@ -203,106 +80,129 @@ const HomePage = () => {
                 body: JSON.stringify(taskData),
             });
             
-            if (!response.ok) throw new Error('Failed to create task');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
             
-            // Refresh tasks list
             dispatch(fetchTasks());
             setIsModalOpen(false);
         } catch (error) {
             console.error('Error creating task:', error);
-            // TODO: Add error handling
+            alert(error.message);
         }
     };
 
     const handleCompleteTask = async (id) => {
         try {
-            await fetch(`http://localhost:3001/tasks/${id}/complete`, {
+            console.log('Completing task:', id); // Debug log
+            const response = await fetch(`http://localhost:3001/tasks/${id}/complete`, {
                 method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
+            
+            if (!response.ok) {
+                throw new Error('Failed to complete task');
+            }
+            
             dispatch(fetchTasks());
         } catch (error) {
             console.error('Error completing task:', error);
         }
     };
 
-    const handleEditTask = async (taskData) => {
+    const handleEditTask = (task) => {
+        setEditingTask(task);
+        setIsEditModalOpen(true);
+    };
+
+    const handleCloseEditModal = () => {
+        setIsEditModalOpen(false);
+        setEditingTask(null);
+    };
+
+    const handleDeleteTask = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this task?')) return;
+
         try {
-            await fetch(`http://localhost:3001/tasks/${taskData._id}`, {
-                method: 'PATCH',
+            console.log('Attempting to delete task:', id); // Debug log
+            
+            const response = await fetch(`http://localhost:3001/tasks/${id}`, {
+                method: 'DELETE',
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(taskData),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
             });
+
+            console.log('Response status:', response.status); // Debug log
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Error data:', errorData); // Debug log
+                throw new Error(errorData.message || 'Failed to delete task');
+            }
+
+            console.log('Task deleted successfully'); // Debug log
             dispatch(fetchTasks());
-            setIsEditModalOpen(false);
         } catch (error) {
-            console.error('Error updating task:', error);
+            console.error('Delete error details:', error); // Debug log
+            alert(`Error deleting task: ${error.message}`);
         }
     };
 
-    if (loading) return <Container><EmptyState>Loading...</EmptyState></Container>;
-    if (error) return <Container><EmptyState>Error: {error}</EmptyState></Container>;
+    const sortTasks = (tasksToSort) => {
+        return [...tasksToSort].sort((a, b) => {
+            let comparison = 0;
+            if (sortBy === 'priority') {
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                comparison = priorityOrder[b.priority] - priorityOrder[a.priority];
+            } else if (sortBy === 'dueDate') {
+                comparison = new Date(a.dueDate) - new Date(b.dueDate);
+            }
+            return sortOrder === 'ascending' ? comparison : -comparison;
+        });
+    };
+
+    const sortedTasks = tasks ? sortTasks(tasks) : [];
+
+    if (loading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage>{error}</ErrorMessage>;
 
     return (
         <Container>
-            <Header>
-                <Title>TaskHive</Title>
-                <CreateButton onClick={handleCreateTask}>
-                    + New Task
-                </CreateButton>
-            </Header>
-            
-            {tasks.length === 0 ? (
-                <EmptyState>
-                    <h3>No tasks yet</h3>
-                    <p>Create your first task to get started!</p>
-                </EmptyState>
-            ) : (
-                <TaskGrid>
-                    {tasks.map((task) => (
-                        <TaskCard key={task.id}>
-                            <TaskContent>
-                                <div>
-                                    <TaskTitle>{task.title}</TaskTitle>
-                                    <TaskDescription>{task.description}</TaskDescription>
-                                </div>
-                                <TaskMeta>
-                                    <PriorityTag priority={task.priority}>
-                                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                                    </PriorityTag>
-                                    <DueDate>
-                                        Due: {new Date(task.dueDate).toLocaleDateString()}
-                                    </DueDate>
-                                </TaskMeta>
-                                <TaskActions>
-                                    <CompleteButton onClick={() => handleCompleteTask(task.id)}>
-                                        Complete Task
-                                    </CompleteButton>
-                                    <Button 
-                                        onClick={() => {
-                                            setSelectedTask(task);
-                                            setIsEditModalOpen(true);
-                                        }}
-                                    >
-                                        Edit
-                                    </Button>
-                                </TaskActions>
-                            </TaskContent>
-                        </TaskCard>
-                    ))}
-                </TaskGrid>
-            )}
-            <CreateTaskModal 
+            <Title>TaskHive</Title>
+            <SearchBar />
+            <Controls>
+                <Button onClick={() => setIsModalOpen(true)}>+ New Task</Button>
+                <div>
+                    <Select 
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                    >
+                        <option value="priority">Sort by Priority</option>
+                        <option value="dueDate">Sort by Due Date</option>
+                    </Select>
+                    <Select 
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value)}
+                    >
+                        <option value="ascending">Ascending</option>
+                        <option value="descending">Descending</option>
+                    </Select>
+                </div>
+            </Controls>
+            <TaskList tasks={sortedTasks} onEditTask={handleEditTask} />
+            <CreateTaskModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onSubmit={handleSubmitTask}
             />
-            <EditTaskModal 
+            <EditTaskModal
                 isOpen={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
-                onSubmit={handleEditTask}
-                task={selectedTask}
+                onClose={handleCloseEditModal}
+                task={editingTask}
             />
         </Container>
     );

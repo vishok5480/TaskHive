@@ -1,21 +1,19 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export type TaskDocument = Task & Document;
-
-@Schema()
-export class Task {
+@Schema({ timestamps: true })
+export class Task extends Document {
   @Prop({ required: true })
   title: string;
 
   @Prop({ required: true })
   description: string;
 
-  @Prop({ required: true, enum: ['low', 'medium', 'high'] })
-  priority: 'low' | 'medium' | 'high';
+  @Prop({ required: true, enum: ['low', 'medium', 'high'], default: 'medium' })
+  priority: string;
 
   @Prop({ required: true })
-  dueDate: string;
+  dueDate: Date;
 
   @Prop({ default: false })
   completed: boolean;
